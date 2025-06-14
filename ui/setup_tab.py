@@ -266,6 +266,19 @@ class SetupTab:
                                       f"Error opening file picker: {str(ex)}", 
                                       COLORS['error_red'])
     
+    def _on_token_file_picker_result(self, e: ft.FilePickerResultEvent):
+        """Handle token file picker result"""
+        if e.path:
+            self.token_file_path.value = e.path
+            self._update_section_status(self.token_gen_status, 
+                                      f"Selected path: {e.path}", 
+                                      COLORS['success_green'])
+        else:
+            self._update_section_status(self.token_gen_status, 
+                                      "No file selected", 
+                                      COLORS['yellow'])
+        self.page.update()
+    
     def _generate_keys(self, e):
         """Generate RSA 4096-bit key pair"""
         def generate():
