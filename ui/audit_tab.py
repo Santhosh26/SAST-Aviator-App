@@ -51,17 +51,14 @@ class AuditTab:
             on_change=self._validate_app_name
         )
         
-        # Data tables
+        # Data tables wrapped in ListViews for proper scrolling
         self.ssc_apps_table = ft.DataTable(
             columns=[
                 ft.DataColumn(ft.Text("SSC Application")),
                 ft.DataColumn(ft.Text("Version")),
                 ft.DataColumn(ft.Text("ID")),
             ],
-            rows=[],
-            border=ft.border.all(1, COLORS['dark_gray']),
-            border_radius=8,
-            height=200
+            rows=[]
         )
         
         self.aviator_apps_table = ft.DataTable(
@@ -69,10 +66,22 @@ class AuditTab:
                 ft.DataColumn(ft.Text("Aviator Application")),
                 ft.DataColumn(ft.Text("ID")),
             ],
-            rows=[],
-            border=ft.border.all(1, COLORS['dark_gray']),
-            border_radius=8,
-            height=200
+            rows=[]
+        )
+        
+        # Create scrollable containers for tables
+        self.ssc_apps_list = ft.ListView(
+            controls=[self.ssc_apps_table],
+            height=200,
+            spacing=0,
+            padding=ft.padding.all(5)
+        )
+        
+        self.aviator_apps_list = ft.ListView(
+            controls=[self.aviator_apps_table],
+            height=200,
+            spacing=0,
+            padding=ft.padding.all(5)
         )
         
         # Mapping controls
@@ -91,10 +100,15 @@ class AuditTab:
                 ft.DataColumn(ft.Text("Aviator App")),
                 ft.DataColumn(ft.Text("Actions")),
             ],
-            rows=[],
-            border=ft.border.all(1, COLORS['dark_gray']),
-            border_radius=8,
-            height=150
+            rows=[]
+        )
+        
+        # Create scrollable container for mappings table
+        self.mappings_list = ft.ListView(
+            controls=[self.mappings_table],
+            height=150,
+            spacing=0,
+            padding=ft.padding.all(5)
         )
         
         # Audit controls
@@ -254,17 +268,12 @@ class AuditTab:
                 
                 self.app_mgmt_status,
                 
-                # Applications tables in scrollable containers - FIXED: Added scroll bars
+                # Applications tables with proper scrolling
                 ft.Row([
                     ft.Column([
                         ft.Text("SSC Applications", weight=ft.FontWeight.BOLD),
                         ft.Container(
-                            content=ft.Column(
-                                [self.ssc_apps_table],
-                                scroll=ft.ScrollMode.AUTO,  # ← Added scroll capability
-                                height=200
-                            ),
-                            height=200,
+                            content=self.ssc_apps_list,
                             border=ft.border.all(1, COLORS['dark_gray']),
                             border_radius=8
                         )
@@ -272,12 +281,7 @@ class AuditTab:
                     ft.Column([
                         ft.Text("Aviator Applications", weight=ft.FontWeight.BOLD),
                         ft.Container(
-                            content=ft.Column(
-                                [self.aviator_apps_table],
-                                scroll=ft.ScrollMode.AUTO,  # ← Added scroll capability
-                                height=200
-                            ),
-                            height=200,
+                            content=self.aviator_apps_list,
                             border=ft.border.all(1, COLORS['dark_gray']),
                             border_radius=8
                         )
@@ -295,12 +299,7 @@ class AuditTab:
                 
                 ft.Text("Current Mappings", weight=ft.FontWeight.BOLD),
                 ft.Container(
-                    content=ft.Column(
-                        [self.mappings_table],
-                        scroll=ft.ScrollMode.AUTO,  # ← Also added scroll to mappings table
-                        height=150
-                    ),
-                    height=150,
+                    content=self.mappings_list,
                     border=ft.border.all(1, COLORS['dark_gray']),
                     border_radius=8
                 )
@@ -456,14 +455,14 @@ class AuditTab:
                     dropdown_options = []
                     
                     for app in apps_data:
-                        # FIXED: Correct parsing of nested JSON structure
-                        app_name = app.get('application', {}).get('name', 'Unknown')  # ← Application name is nested
-                        version = app.get('name', 'Unknown')  # ← Version name is at root level
+                        # Correct parsing of nested JSON structure
+                        app_name = app.get('application', {}).get('name', 'Unknown')
+                        version = app.get('name', 'Unknown')
                         app_id = app.get('id', 'Unknown')
                         
                         self.ssc_apps_table.rows.append(
                             ft.DataRow(cells=[
-                                ft.DataCell(ft.Text(app_name)),  # Now shows correct app name
+                                ft.DataCell(ft.Text(app_name)),
                                 ft.DataCell(ft.Text(version)),
                                 ft.DataCell(ft.Text(str(app_id)))
                             ])
