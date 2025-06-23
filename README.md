@@ -2,33 +2,6 @@
 
 A cross-platform desktop application using Flet Python to simplify the SAST Aviator setup and audit workflow.
 
-## Project Structure
-
-```
-sast_aviator_app/
-├── main.py                 # Application entry point
-├── config/                 # Configuration management
-│   ├── __init__.py
-│   ├── config_manager.py   # Handles config.ini operations
-│   └── config.ini         # Generated configuration file
-├── ui/                    # User interface components
-│   ├── __init__.py
-│   ├── setup_tab.py       # Setup & Configuration tab
-│   └── audit_tab.py       # Audit Operations tab
-├── services/              # Business logic services
-│   ├── __init__.py
-│   ├── fcli_service.py    # FCLI command execution
-│   ├── aviator_service.py # Aviator-specific operations
-│   └── ssc_service.py     # SSC-specific operations
-├── utils/                 # Utility functions
-│   ├── __init__.py
-│   ├── constants.py       # App constants and colors
-│   ├── validators.py      # Input validation
-│   └── helpers.py         # Helper functions
-├── requirements.txt       # Python dependencies
-└── README.md             # This file
-```
-
 ## Prerequisites
 
 1. **Python 3.8+** installed
