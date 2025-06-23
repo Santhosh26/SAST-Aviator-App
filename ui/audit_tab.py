@@ -117,6 +117,8 @@ class AuditTab:
         scrollable_content = ft.Column(
             [
                 ft.Text("Audit Operations", size=24, weight=ft.FontWeight.BOLD, color=COLORS['electric_blue']),
+                ft.Text("Execute SAST audits after completing setup. Ensure Setup tab is completed first.", 
+                       size=14, color=COLORS['dark_gray'], italic=True),
                 ft.Divider(),
                 
                 # Step 5: SSC Session
@@ -151,9 +153,25 @@ class AuditTab:
     
     def _build_ssc_session_section(self) -> ft.Container:
         """Build SSC session section"""
+        help_text = ft.Container(
+            content=ft.Text(
+                "🔗 Connect to Software Security Center (SSC):\n"
+                "• SSC URL: Your organization's SSC server (e.g., http://your-ssc:8080/ssc)\n"
+                "• Username: Your SSC login credentials\n"
+                "• Password: Your SSC password (stored securely, not saved)\n"
+                "• This connection allows access to your application versions for audit",
+                size=12,
+                color=COLORS['dark_gray']
+            ),
+            bgcolor=COLORS['light_blue'],
+            border_radius=5,
+            padding=10
+        )
+        
         return create_section_container(
             "Step 5: SSC Session",
             [
+                help_text,
                 self.ssc_url,
                 ft.Row([
                     self.ssc_username,
@@ -169,9 +187,25 @@ class AuditTab:
     
     def _build_aviator_session_section(self) -> ft.Container:
         """Build Aviator session section"""
+        help_text = ft.Container(
+            content=ft.Text(
+                "🚀 Connect to Aviator service:\n"
+                "• Uses the token generated in Step 4 of Setup tab\n"
+                "• Establishes authenticated session with Aviator\n"
+                "• Required for creating apps and running audits\n"
+                "• Ensure you've completed all Setup steps before proceeding",
+                size=12,
+                color=COLORS['dark_gray']
+            ),
+            padding=ft.padding.only(bottom=10),
+            bgcolor=COLORS['light_blue'],
+            border_radius=5
+        )
+        
         return create_section_container(
             "Step 6: Aviator Session",
             [
+                help_text,
                 ft.Text(f"Token File: {self.config.get('tokens', 'current_token_file')}"),
                 create_button("Login to Aviator", self._login_aviator, 
                             COLORS['electric_blue'], COLORS['white']),
@@ -183,9 +217,26 @@ class AuditTab:
     
     def _build_app_management_section(self) -> ft.Container:
         """Build application management section"""
+        help_text = ft.Container(
+            content=ft.Text(
+                "📱 Manage applications and create mappings:\n"
+                "• Create new Aviator apps if needed, or use existing ones\n"
+                "• List applications from both SSC and Aviator to see what's available\n"
+                "• Map SSC app:version combinations to Aviator apps for audit\n"
+                "• Multiple SSC apps can map to the same Aviator app\n"
+                "• Complete both SSC and Aviator login (Steps 5-6) before proceeding",
+                size=12,
+                color=COLORS['dark_gray']
+            ),
+            padding=ft.padding.only(bottom=10),
+            bgcolor=COLORS['light_blue'],
+            border_radius=5
+        )
+        
         return create_section_container(
             "Steps 7-8: Application Management",
             [
+                help_text,
                 # Create new Aviator app
                 ft.Row([
                     self.new_app_name,
@@ -203,12 +254,16 @@ class AuditTab:
                 
                 self.app_mgmt_status,
                 
-                # Applications tables in scrollable containers
+                # Applications tables in scrollable containers - FIXED: Added scroll bars
                 ft.Row([
                     ft.Column([
                         ft.Text("SSC Applications", weight=ft.FontWeight.BOLD),
                         ft.Container(
-                            content=self.ssc_apps_table,
+                            content=ft.Column(
+                                [self.ssc_apps_table],
+                                scroll=ft.ScrollMode.AUTO,  # ← Added scroll capability
+                                height=200
+                            ),
                             height=200,
                             border=ft.border.all(1, COLORS['dark_gray']),
                             border_radius=8
@@ -217,7 +272,11 @@ class AuditTab:
                     ft.Column([
                         ft.Text("Aviator Applications", weight=ft.FontWeight.BOLD),
                         ft.Container(
-                            content=self.aviator_apps_table,
+                            content=ft.Column(
+                                [self.aviator_apps_table],
+                                scroll=ft.ScrollMode.AUTO,  # ← Added scroll capability
+                                height=200
+                            ),
                             height=200,
                             border=ft.border.all(1, COLORS['dark_gray']),
                             border_radius=8
@@ -236,7 +295,11 @@ class AuditTab:
                 
                 ft.Text("Current Mappings", weight=ft.FontWeight.BOLD),
                 ft.Container(
-                    content=self.mappings_table,
+                    content=ft.Column(
+                        [self.mappings_table],
+                        scroll=ft.ScrollMode.AUTO,  # ← Also added scroll to mappings table
+                        height=150
+                    ),
                     height=150,
                     border=ft.border.all(1, COLORS['dark_gray']),
                     border_radius=8
@@ -248,9 +311,26 @@ class AuditTab:
     
     def _build_audit_section(self) -> ft.Container:
         """Build audit execution section"""
+        help_text = ft.Container(
+            content=ft.Text(
+                "🔍 Execute SAST audit on your applications:\n"
+                "• Select a mapping from the dropdown (created in Steps 7-8)\n"
+                "• Run audit to analyze SSC app using Aviator intelligence\n"
+                "• Results will show findings, recommendations, and security insights\n"
+                "• Ensure all previous steps are completed and sessions are active\n"
+                "• Audit may take several minutes depending on application size",
+                size=12,
+                color=COLORS['dark_gray']
+            ),
+            padding=ft.padding.only(bottom=10),
+            bgcolor=COLORS['light_blue'],
+            border_radius=5
+        )
+        
         return create_section_container(
             "Step 9: Audit Execution",
             [
+                help_text,
                 self.audit_mapping_dropdown,
                 create_button("Run Audit", self._run_audit, 
                             COLORS['electric_blue'], COLORS['white']),
@@ -376,13 +456,14 @@ class AuditTab:
                     dropdown_options = []
                     
                     for app in apps_data:
-                        app_name = app.get('applicationName', 'Unknown')
-                        version = app.get('name', 'Unknown')
+                        # FIXED: Correct parsing of nested JSON structure
+                        app_name = app.get('application', {}).get('name', 'Unknown')  # ← Application name is nested
+                        version = app.get('name', 'Unknown')  # ← Version name is at root level
                         app_id = app.get('id', 'Unknown')
                         
                         self.ssc_apps_table.rows.append(
                             ft.DataRow(cells=[
-                                ft.DataCell(ft.Text(app_name)),
+                                ft.DataCell(ft.Text(app_name)),  # Now shows correct app name
                                 ft.DataCell(ft.Text(version)),
                                 ft.DataCell(ft.Text(str(app_id)))
                             ])

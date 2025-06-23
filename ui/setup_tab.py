@@ -88,6 +88,8 @@ class SetupTab:
         scrollable_content = ft.Column(
             [
                 ft.Text("Setup and Configuration", size=24, weight=ft.FontWeight.BOLD, color=COLORS['electric_blue']),
+                ft.Text("Complete these steps to configure your SAST Aviator environment", 
+                       size=14, color=COLORS['dark_gray'], italic=True),
                 ft.Divider(),
                 
                 # Step 1: Prerequisites Check
@@ -125,9 +127,24 @@ class SetupTab:
     
     def _build_prerequisites_section(self) -> ft.Container:
         """Build prerequisites check section"""
+        help_text = ft.Container(
+            content=ft.Text(
+                "ℹ️ Prerequisites are checked automatically on startup. Ensure you have:\n"
+                "• FCLI version 3.5.1 or higher installed\n"
+                "• OpenSSL installed and accessible from command line\n"
+                "• Network connectivity to download dependencies if needed",
+                size=12,
+                color=COLORS['dark_gray']
+            ),
+            bgcolor=COLORS['light_blue'],
+            border_radius=5,
+            padding=10
+        )
+        
         return create_section_container(
             "Step 1: Prerequisites Check",
             [
+                help_text,
                 ft.Row([
                     create_button("Check FCLI", self._check_fcli, COLORS['electric_blue'], COLORS['white']),
                     create_button("Check OpenSSL", self._check_openssl, COLORS['electric_blue'], COLORS['white'])
@@ -140,9 +157,25 @@ class SetupTab:
     
     def _build_key_generation_section(self) -> ft.Container:
         """Build key generation section"""
+        help_text = ft.Container(
+            content=ft.Text(
+                "🔐 Generate RSA 4096-bit key pair for secure authentication:\n"
+                "• Choose a secure location to store your private key\n"
+                "• Private key stays with you - never share it\n"
+                "• Public key will be displayed below - share this with your PM\n"
+                "• Keys are used for secure communication with Aviator server",
+                size=12,
+                color=COLORS['dark_gray']
+            ),
+            padding=ft.padding.only(bottom=10),
+            bgcolor=COLORS['light_blue'],
+            border_radius=5
+        )
+        
         return create_section_container(
             "Step 2: Key Generation",
             [
+                help_text,
                 ft.Row([
                     self.private_key_path,
                     create_button("Browse", self._browse_key_path, COLORS['cobalt_blue'], COLORS['white'])
@@ -158,9 +191,25 @@ class SetupTab:
     
     def _build_server_config_section(self) -> ft.Container:
         """Build server configuration section"""
+        help_text = ft.Container(
+            content=ft.Text(
+                "🌐 Configure connection to your Aviator server:\n"
+                "• Server URL: Usually https://ams.aviator.fortify.com (or your organization's URL)\n"
+                "• Tenant: Your organization's tenant name (e.g., demo_presales)\n"
+                "• Ensure your private key from Step 2 is available\n"
+                "• This establishes secure communication with the Aviator service",
+                size=12,
+                color=COLORS['dark_gray']
+            ),
+            padding=ft.padding.only(bottom=10),
+            bgcolor=COLORS['light_blue'],
+            border_radius=5
+        )
+        
         return create_section_container(
             "Step 3: Server Configuration",
             [
+                help_text,
                 self.server_url,
                 self.tenant,
                 create_button("Configure Server", self._configure_server, 
@@ -173,9 +222,26 @@ class SetupTab:
     
     def _build_token_section(self) -> ft.Container:
         """Build token generation section"""
+        help_text = ft.Container(
+            content=ft.Text(
+                "🎟️ Generate authentication token for Aviator access:\n"
+                "• Email: Your registered email address for the Aviator service\n"
+                "• Token Name: Descriptive name for this token (e.g., 'my-laptop-token')\n"
+                "• Save Location: Choose where to store the token JSON file\n"
+                "• Keep this token file secure - it's your key to the service\n"
+                "• Complete server configuration (Step 3) before generating token",
+                size=12,
+                color=COLORS['dark_gray']
+            ),
+            padding=ft.padding.only(bottom=10),
+            bgcolor=COLORS['light_blue'],
+            border_radius=5
+        )
+        
         return create_section_container(
             "Step 4: Token Generation",
             [
+                help_text,
                 self.email,
                 self.token_name,
                 ft.Row([

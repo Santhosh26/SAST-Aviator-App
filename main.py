@@ -22,7 +22,7 @@ class SASTAviatorApp:
     def main(self, page: ft.Page):
         """Main application entry point"""
         # Configure page
-        page.title = "SAST Aviator Desktop Application"
+        page.title = "Opentext SAST Aviator Application"
         page.window_width = 1200
         page.window_height = 800
         page.window_min_width = 800
@@ -48,16 +48,17 @@ class SASTAviatorApp:
             content=ft.Row([
                 ft.Icon(name=ft.Icons.SECURITY, color=COLORS['white'], size=30),
                 ft.Text(
-                    "SAST Aviator Desktop Application",
-                    size=24,
+                    "Opentext SAST Aviator Application",
+                    size=20,
                     weight=ft.FontWeight.BOLD,
                     color=COLORS['white']
                 ),
                 ft.Container(expand=True),  # Spacer
-                ft.Text(
-                    "OpenText Fortify",
-                    size=16,
-                    color=COLORS['white']
+                ft.Image(
+                    src="images/icon.png",
+                    width=50,
+                    height=50,
+                    fit=ft.ImageFit.CONTAIN
                 )
             ], alignment=ft.MainAxisAlignment.START),
             bgcolor=COLORS['electric_blue'],
