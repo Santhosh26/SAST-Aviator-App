@@ -64,3 +64,8 @@ claude.md
 *.tmp
 *.temp
 temp/
+
+#Setup files
+setup_project.py
+setup_packaging.py
+version_info.py
