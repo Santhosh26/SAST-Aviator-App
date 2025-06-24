@@ -69,4 +69,4 @@ temp/
 setup_project.py
 setup_packaging.py
 version_info.py
-build_windows.bat
+build.bat
