@@ -58,6 +58,7 @@ sast_aviator.lock
 .flet/
 
 # Build artifacts
+.claude/
 build/
 dist/
 *.exe
