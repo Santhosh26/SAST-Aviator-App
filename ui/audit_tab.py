@@ -2,9 +2,11 @@
 
 import flet as ft
 import threading
+import time
+import re
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 
 from config.config_manager import ConfigManager
 from services.ssc_service import SSCService
@@ -26,11 +28,24 @@ class AuditTab:
         self.config = config_manager
         self.container = None
         
+        # Store original app lists for filtering
+        self.ssc_apps_data = []
+        self.aviator_apps_data = []
+        
         # Individual status texts for each section
         self.ssc_status = ft.Text("", color=COLORS['dark_gray'])
         self.aviator_status = ft.Text("", color=COLORS['dark_gray'])
         self.app_mgmt_status = ft.Text("", color=COLORS['dark_gray'])
         self.audit_status = ft.Text("", color=COLORS['dark_gray'])
+        
+        # Progress tracking for audit
+        self.audit_progress = ft.ProgressBar(
+            width=400,
+            color=COLORS['electric_blue'],
+            bgcolor=COLORS['light_gray'],
+            visible=False
+        )
+        self.audit_progress_text = ft.Text("", size=12, color=COLORS['dark_gray'])
         
         # Form fields
         self.ssc_url = ft.TextField(
@@ -49,6 +64,21 @@ class AuditTab:
             password=True,
             can_reveal_password=True,
             width=400
+        )
+        
+        # Search fields for applications
+        self.ssc_search = ft.TextField(
+            label="Search SSC Applications",
+            width=300,
+            prefix_icon=ft.Icons.SEARCH,
+            on_change=self._filter_ssc_apps
+        )
+        
+        self.aviator_search = ft.TextField(
+            label="Search Aviator Applications",
+            width=300,
+            prefix_icon=ft.Icons.SEARCH,
+            on_change=self._filter_aviator_apps
         )
         
         # Aviator session token field and file picker
@@ -227,7 +257,7 @@ class AuditTab:
                 "• SSC URL: Your organization's SSC server (e.g., http://your-ssc:8080/ssc)\n"
                 "• Username: Your SSC login credentials\n"
                 "• Password: Your SSC password (stored securely, not saved)\n"
-                "• This connection allows access to your application versions for audit",
+                "• Applications will be listed automatically after successful login",
                 size=12,
                 color=COLORS['dark_gray']
             ),
@@ -288,15 +318,15 @@ class AuditTab:
         )
     
     def _build_app_management_section(self) -> ft.Container:
-        """Build application management section with multi-select support"""
+        """Build application management section with search and multi-select support"""
         help_text = ft.Container(
             content=ft.Text(
                 "📱 Manage applications and create mappings:\n"
+                "• Search: Filter applications by typing in the search boxes\n"
                 "• Create new Aviator apps if needed, or use existing ones\n"
-                "• List applications from both SSC and Aviator\n"
+                "• SSC apps are loaded automatically after login\n"
                 "• Single Mapping: Select one SSC app and one Aviator app\n"
-                "• Multi-Select: Check multiple apps from each table and map them all at once\n"
-                "• Multiple SSC apps can map to the same Aviator app",
+                "• Multi-Select: Check multiple apps from each table and map them all at once",
                 size=12,
                 color=COLORS['dark_gray']
             ),
@@ -347,20 +377,24 @@ class AuditTab:
                                 COLORS['cobalt_blue'], COLORS['white'])
                 ]),
                 
-                # List applications
+                # List applications with refresh buttons
                 ft.Row([
-                    create_button("List SSC Apps", self._list_ssc_apps, 
+                    create_button("Refresh SSC Apps", self._list_ssc_apps, 
                                 COLORS['electric_blue'], COLORS['white']),
-                    create_button("List Aviator Apps", self._list_aviator_apps, 
+                    create_button("Refresh Aviator Apps", self._list_aviator_apps, 
                                 COLORS['electric_blue'], COLORS['white'])
                 ]),
                 
                 self.app_mgmt_status,
                 
-                # Applications tables with checkboxes
+                # Applications tables with search and checkboxes
                 ft.Row([
                     ft.Column([
-                        ft.Text("SSC Applications", weight=ft.FontWeight.BOLD),
+                        ft.Row([
+                            ft.Text("SSC Applications", weight=ft.FontWeight.BOLD),
+                            ft.Container(width=50),  # Spacer
+                            self.ssc_search
+                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                         ft.Container(
                             content=self.ssc_apps_list,
                             border=ft.border.all(1, COLORS['dark_gray']),
@@ -368,7 +402,11 @@ class AuditTab:
                         )
                     ], expand=1),
                     ft.Column([
-                        ft.Text("Aviator Applications", weight=ft.FontWeight.BOLD),
+                        ft.Row([
+                            ft.Text("Aviator Applications", weight=ft.FontWeight.BOLD),
+                            ft.Container(width=50),  # Spacer
+                            self.aviator_search
+                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                         ft.Container(
                             content=self.aviator_apps_list,
                             border=ft.border.all(1, COLORS['dark_gray']),
@@ -397,12 +435,12 @@ class AuditTab:
         )
     
     def _build_audit_section(self) -> ft.Container:
-        """Build audit execution section with scrollable results"""
+        """Build audit execution section with progress tracking and scrollable results"""
         help_text = ft.Container(
             content=ft.Text(
                 "🔍 Execute SAST audit on your applications:\n"
                 "• Select a mapping from the dropdown (created in Steps 7-8)\n"
-                "• Run audit to analyze SSC app using Aviator intelligence\n"
+                "• Progress bar shows audit execution status\n"
                 "• Results will show in the scrollable text area below\n"
                 "• Audit may take several minutes depending on application size",
                 size=12,
@@ -420,6 +458,10 @@ class AuditTab:
                 self.audit_mapping_dropdown,
                 create_button("Run Audit", self._run_audit, 
                             COLORS['electric_blue'], COLORS['white']),
+                ft.Row([
+                    self.audit_progress,
+                    self.audit_progress_text
+                ]),
                 self.audit_status,
                 ft.Text("Audit Results (Scrollable):", weight=ft.FontWeight.BOLD),
                 self.audit_results_container
@@ -427,6 +469,91 @@ class AuditTab:
             COLORS['cobalt_blue'],
             COLORS['light_gray']
         )
+    
+    def _filter_ssc_apps(self, e):
+        """Filter SSC applications based on search input"""
+        search_term = self.ssc_search.value.lower()
+        self._display_ssc_apps(search_term)
+    
+    def _filter_aviator_apps(self, e):
+        """Filter Aviator applications based on search input"""
+        search_term = self.aviator_search.value.lower()
+        self._display_aviator_apps(search_term)
+    
+    def _display_ssc_apps(self, search_filter: str = ""):
+        """Display SSC applications with optional search filter"""
+        self.ssc_apps_table.rows.clear()
+        dropdown_options = []
+        
+        for app_data in self.ssc_apps_data:
+            app_name = app_data['name']
+            version = app_data['version']
+            app_id = app_data['id']
+            app_key = f"{app_name}:{version}"
+            
+            # Apply search filter
+            if search_filter and search_filter not in app_name.lower() and search_filter not in version.lower():
+                continue
+            
+            # Create checkbox for multi-select
+            checkbox = ft.Checkbox(
+                value=app_key in self.selected_ssc_apps,
+                data=app_key,
+                on_change=lambda e, key=app_key: self._toggle_ssc_selection(key, e.control.value)
+            )
+            
+            self.ssc_apps_table.rows.append(
+                ft.DataRow(cells=[
+                    ft.DataCell(checkbox),
+                    ft.DataCell(ft.Text(app_name)),
+                    ft.DataCell(ft.Text(version)),
+                    ft.DataCell(ft.Text(str(app_id)))
+                ])
+            )
+            
+            dropdown_options.append(ft.dropdown.Option(
+                key=app_key,
+                text=app_key
+            ))
+        
+        self.ssc_app_dropdown.options = dropdown_options
+        self.page.update()
+    
+    def _display_aviator_apps(self, search_filter: str = ""):
+        """Display Aviator applications with optional search filter"""
+        self.aviator_apps_table.rows.clear()
+        dropdown_options = []
+        
+        for app_data in self.aviator_apps_data:
+            app_name = app_data['name']
+            app_id = app_data['id']
+            
+            # Apply search filter
+            if search_filter and search_filter not in app_name.lower():
+                continue
+            
+            # Create checkbox for multi-select
+            checkbox = ft.Checkbox(
+                value=app_name in self.selected_aviator_apps,
+                data=app_name,
+                on_change=lambda e, name=app_name: self._toggle_aviator_selection(name, e.control.value)
+            )
+            
+            self.aviator_apps_table.rows.append(
+                ft.DataRow(cells=[
+                    ft.DataCell(checkbox),
+                    ft.DataCell(ft.Text(app_name)),
+                    ft.DataCell(ft.Text(str(app_id)))
+                ])
+            )
+            
+            dropdown_options.append(ft.dropdown.Option(
+                key=app_name,
+                text=app_name
+            ))
+        
+        self.aviator_app_dropdown.options = dropdown_options
+        self.page.update()
     
     def _browse_aviator_token(self, e):
         """Browse for Aviator token file"""
@@ -471,7 +598,7 @@ class AuditTab:
         self.page.update()
     
     def _login_ssc(self, e):
-        """Login to SSC"""
+        """Login to SSC and automatically list applications"""
         if not Validators.validate_url(self.ssc_url.value):
             self._update_section_status(self.ssc_status, 
                                       "Please enter a valid SSC URL", COLORS['error_red'])
@@ -492,6 +619,11 @@ class AuditTab:
                     self.config.set('ssc', 'url', self.ssc_url.value)
                     self.config.set('ssc', 'username', self.ssc_username.value)
                     self.config.set('ssc', 'last_session', datetime.now().isoformat())
+                    
+                    # Automatically list SSC applications after successful login
+                    logger.info("Auto-listing SSC applications after successful login")
+                    time.sleep(0.5)  # Brief delay for status visibility
+                    self._list_ssc_apps(None)
                 else:
                     self._update_section_status(self.ssc_status, message, COLORS['error_red'])
                     
@@ -567,46 +699,28 @@ class AuditTab:
         """List SSC applications with checkboxes for multi-select"""
         def list_apps():
             try:
-                self._update_section_status(self.app_mgmt_status, "Listing SSC applications...", COLORS['yellow'])
+                self._update_section_status(self.app_mgmt_status, "Loading SSC applications...", COLORS['yellow'])
                 
                 success, apps_data, error_msg = SSCService.list_applications()
                 
                 if success:
-                    self.ssc_apps_table.rows.clear()
-                    self.selected_ssc_apps.clear()
-                    dropdown_options = []
-                    
+                    # Store and process app data
+                    self.ssc_apps_data = []
                     for app in apps_data:
-                        app_name = app.get('application', {}).get('name', 'Unknown')
-                        version = app.get('name', 'Unknown')
-                        app_id = app.get('id', 'Unknown')
-                        app_key = f"{app_name}:{version}"
-                        
-                        # Create checkbox for multi-select
-                        checkbox = ft.Checkbox(
-                            value=False,
-                            data=app_key,
-                            on_change=lambda e, key=app_key: self._toggle_ssc_selection(key, e.control.value)
-                        )
-                        
-                        self.ssc_apps_table.rows.append(
-                            ft.DataRow(cells=[
-                                ft.DataCell(checkbox),
-                                ft.DataCell(ft.Text(app_name)),
-                                ft.DataCell(ft.Text(version)),
-                                ft.DataCell(ft.Text(str(app_id)))
-                            ])
-                        )
-                        
-                        dropdown_options.append(ft.dropdown.Option(
-                            key=app_key,
-                            text=app_key
-                        ))
+                        app_info = {
+                            'name': app.get('application', {}).get('name', 'Unknown'),
+                            'version': app.get('name', 'Unknown'),
+                            'id': app.get('id', 'Unknown')
+                        }
+                        self.ssc_apps_data.append(app_info)
                     
-                    self.ssc_app_dropdown.options = dropdown_options
-                    self.page.update()
+                    # Clear search and display all apps
+                    self.ssc_search.value = ""
+                    self._display_ssc_apps()
+                    
                     self._update_section_status(self.app_mgmt_status, 
-                                              f"Listed {len(apps_data)} SSC applications", COLORS['success_green'])
+                                              f"Loaded {len(self.ssc_apps_data)} SSC applications", 
+                                              COLORS['success_green'])
                 else:
                     self._update_section_status(self.app_mgmt_status, error_msg, COLORS['error_red'])
                     
@@ -620,43 +734,27 @@ class AuditTab:
         """List Aviator applications with checkboxes for multi-select"""
         def list_apps():
             try:
-                self._update_section_status(self.app_mgmt_status, "Listing Aviator applications...", COLORS['yellow'])
+                self._update_section_status(self.app_mgmt_status, "Loading Aviator applications...", COLORS['yellow'])
                 
                 success, apps_data, error_msg = AviatorService.list_apps()
                 
                 if success:
-                    self.aviator_apps_table.rows.clear()
-                    self.selected_aviator_apps.clear()
-                    dropdown_options = []
-                    
+                    # Store and process app data
+                    self.aviator_apps_data = []
                     for app in apps_data:
-                        app_name = app.get('name', 'Unknown')
-                        app_id = app.get('id', 'Unknown')
-                        
-                        # Create checkbox for multi-select
-                        checkbox = ft.Checkbox(
-                            value=False,
-                            data=app_name,
-                            on_change=lambda e, name=app_name: self._toggle_aviator_selection(name, e.control.value)
-                        )
-                        
-                        self.aviator_apps_table.rows.append(
-                            ft.DataRow(cells=[
-                                ft.DataCell(checkbox),
-                                ft.DataCell(ft.Text(app_name)),
-                                ft.DataCell(ft.Text(str(app_id)))
-                            ])
-                        )
-                        
-                        dropdown_options.append(ft.dropdown.Option(
-                            key=app_name,
-                            text=app_name
-                        ))
+                        app_info = {
+                            'name': app.get('name', 'Unknown'),
+                            'id': app.get('id', 'Unknown')
+                        }
+                        self.aviator_apps_data.append(app_info)
                     
-                    self.aviator_app_dropdown.options = dropdown_options
-                    self.page.update()
+                    # Clear search and display all apps
+                    self.aviator_search.value = ""
+                    self._display_aviator_apps()
+                    
                     self._update_section_status(self.app_mgmt_status, 
-                                              f"Listed {len(apps_data)} Aviator applications", COLORS['success_green'])
+                                              f"Loaded {len(self.aviator_apps_data)} Aviator applications", 
+                                              COLORS['success_green'])
                 else:
                     self._update_section_status(self.app_mgmt_status, error_msg, COLORS['error_red'])
                     
@@ -687,20 +785,11 @@ class AuditTab:
         self.selected_ssc_apps.clear()
         self.selected_aviator_apps.clear()
         
-        # Uncheck all checkboxes in SSC table
-        for row in self.ssc_apps_table.rows:
-            checkbox = row.cells[0].content
-            if isinstance(checkbox, ft.Checkbox):
-                checkbox.value = False
-        
-        # Uncheck all checkboxes in Aviator table
-        for row in self.aviator_apps_table.rows:
-            checkbox = row.cells[0].content
-            if isinstance(checkbox, ft.Checkbox):
-                checkbox.value = False
+        # Re-display apps to update checkboxes
+        self._display_ssc_apps(self.ssc_search.value.lower())
+        self._display_aviator_apps(self.aviator_search.value.lower())
         
         self._update_section_status(self.app_mgmt_status, "Selection cleared", COLORS['success_green'])
-        self.page.update()
     
     def _add_mapping(self, e):
         """Add single application mapping"""
@@ -800,8 +889,35 @@ class AuditTab:
         self.audit_mapping_dropdown.options = audit_options
         self.page.update()
     
+    def _simulate_audit_progress(self, total_steps: int = 10):
+        """Simulate audit progress with percentage updates"""
+        for i in range(total_steps + 1):
+            progress = i / total_steps
+            self.audit_progress.value = progress
+            percentage = int(progress * 100)
+            self.audit_progress_text.value = f"{percentage}%"
+            
+            # Update status messages at key milestones
+            if percentage == 0:
+                status_msg = "Initializing audit..."
+            elif percentage == 20:
+                status_msg = "Connecting to services..."
+            elif percentage == 40:
+                status_msg = "Analyzing application..."
+            elif percentage == 60:
+                status_msg = "Processing vulnerabilities..."
+            elif percentage == 80:
+                status_msg = "Generating recommendations..."
+            elif percentage == 100:
+                status_msg = "Finalizing report..."
+            else:
+                status_msg = f"Processing... {percentage}%"
+            
+            self._update_section_status(self.audit_status, status_msg, COLORS['yellow'])
+            time.sleep(1)  # Simulate processing time
+    
     def _run_audit(self, e):
-        """Run audit on selected mapping with scrollable results"""
+        """Run audit on selected mapping with progress tracking"""
         if not self.audit_mapping_dropdown.value:
             self._update_section_status(self.audit_status, 
                                       "Please select a mapping for audit", COLORS['error_red'])
@@ -809,7 +925,13 @@ class AuditTab:
         
         def run_audit():
             try:
-                self._update_section_status(self.audit_status, "Running audit...", COLORS['yellow'])
+                # Show progress bar
+                self.audit_progress.visible = True
+                self.audit_progress.value = 0
+                self.audit_progress_text.value = "0%"
+                self.page.update()
+                
+                self._update_section_status(self.audit_status, "Starting audit...", COLORS['yellow'])
                 self.audit_results.value = "Audit in progress...\n\n"
                 self.page.update()
                 
@@ -824,24 +946,45 @@ class AuditTab:
                 self.audit_results.value += "-" * 80 + "\n\n"
                 self.page.update()
                 
+                # Start progress simulation in separate thread
+                progress_thread = threading.Thread(
+                    target=self._simulate_audit_progress, 
+                    args=(10,),  # 10 steps = 10 seconds total
+                    daemon=True
+                )
+                progress_thread.start()
+                
+                # Run actual audit
                 success, result = AviatorService.run_audit(ssc_app, aviator_app)
                 
+                # Wait for progress to complete
+                progress_thread.join()
+                
                 if success:
+                    # Parse and clean the audit output to avoid spam
+                    cleaned_result = self._clean_audit_output(result)
+                    
                     self.audit_results.value += f"Audit completed successfully!\n\n"
                     self.audit_results.value += "=== AUDIT OUTPUT ===\n"
-                    self.audit_results.value += result
-                    self._update_section_status(self.audit_status, "Audit completed successfully!", COLORS['success_green'])
+                    self.audit_results.value += cleaned_result
+                    self._update_section_status(self.audit_status, 
+                                              "Audit completed successfully!", 
+                                              COLORS['success_green'])
                 else:
                     self.audit_results.value += f"Audit failed!\n\n"
                     self.audit_results.value += "=== ERROR DETAILS ===\n"
                     self.audit_results.value += result
-                    self._update_section_status(self.audit_status, f"Audit failed", COLORS['error_red'])
+                    self._update_section_status(self.audit_status, 
+                                              f"Audit failed", 
+                                              COLORS['error_red'])
                 
                 # Add completion timestamp
                 audit_end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                self.audit_results.value += f"\n\n-" * 40
+                self.audit_results.value += f"\n\n" + "-" * 80
                 self.audit_results.value += f"\nAudit ended at: {audit_end_time}"
                 
+                # Hide progress bar
+                self.audit_progress.visible = False
                 self.page.update()
                     
             except Exception as e:
@@ -849,9 +992,60 @@ class AuditTab:
                 self.audit_results.value += f"\n\n=== EXCEPTION ===\n{error_msg}"
                 self._update_section_status(self.audit_status, error_msg, COLORS['error_red'])
                 logger.error(error_msg, exc_info=True)
+                
+                # Hide progress bar on error
+                self.audit_progress.visible = False
                 self.page.update()
         
         threading.Thread(target=run_audit, daemon=True).start()
+    
+    def _clean_audit_output(self, raw_output: str) -> str:
+        """Clean audit output to remove spam and keep only relevant information"""
+        lines = raw_output.split('\n')
+        cleaned_lines = []
+        
+        # Patterns to filter out
+        spam_patterns = [
+            r'^\s*$',  # Empty lines
+            r'^\[DEBUG\]',  # Debug messages
+            r'^\[TRACE\]',  # Trace messages
+            r'^Processing\.\.\.',  # Generic processing messages
+            r'^Connecting to',  # Connection messages
+            r'^\d+%',  # Percentage updates
+        ]
+        
+        # Patterns to keep (important information)
+        important_patterns = [
+            r'vulnerability|issue|finding',
+            r'critical|high|medium|low',
+            r'recommendation|suggested|action',
+            r'summary|total|count',
+            r'error|warning|failed',
+            r'completed|finished|done',
+        ]
+        
+        for line in lines:
+            # Skip spam lines
+            if any(re.match(pattern, line, re.IGNORECASE) for pattern in spam_patterns):
+                continue
+            
+            # Always include lines with important keywords
+            if any(re.search(pattern, line, re.IGNORECASE) for pattern in important_patterns):
+                cleaned_lines.append(line)
+                continue
+            
+            # Include non-empty lines that aren't too long
+            if line.strip() and len(line) < 200:
+                cleaned_lines.append(line)
+        
+        # Join and limit total output
+        cleaned_output = '\n'.join(cleaned_lines)
+        
+        # If output is still too long, summarize
+        if len(cleaned_output) > 5000:
+            cleaned_output = cleaned_output[:4500] + "\n\n... [Output truncated for readability] ..."
+        
+        return cleaned_output
     
     def _update_section_status(self, status_text: ft.Text, message: str, color: str):
         """Update section-specific status message"""
