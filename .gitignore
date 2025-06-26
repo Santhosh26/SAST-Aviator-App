@@ -4,6 +4,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
+env/
+venv/
+ENV/
 build/
 develop-eggs/
 dist/
@@ -19,14 +22,25 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# Virtual environments
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
+# PyInstaller
+*.manifest
+*.spec
+
+# Logs
+logs/
+*.log
+
+# Configuration (contains sensitive data)
+config.ini
+
+# Keys and tokens (NEVER commit these!)
+*.pem
+*.key
+*.pub
+token_*.json
+private_key*
+public_key*
 
 # IDE
 .vscode/
@@ -37,36 +51,17 @@ venv.bak/
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# Security sensitive files
-config.ini
-*.pem
-private_key.pem
-public_key.pem
-*token*.json
-token_*.json
+# Application specific
+sast_aviator.lock
+.flet/
 
-# Logs
-*.log
-logs/
-
-#Claude
-.claude/
-claude.md
-
-# Temporary files
-*.tmp
-*.temp
-temp/
-
-#Setup files
-setup_project.py
-setup_packaging.py
-version_info.py
-build.bat
+# Build artifacts
+build/
+dist/
+*.exe
+*.app
+*.dmg
+*.deb
+*.rpm
