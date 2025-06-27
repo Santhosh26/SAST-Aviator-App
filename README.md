@@ -15,7 +15,7 @@
 
 </div>
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
@@ -110,7 +110,7 @@ This open source project was created by **Santhosh Kumar** to address a critical
 - Access to your organization's SSC server
 - Access to SAST Aviator service (typically `https://ams.aviator.fortify.com`)
 
-## 🚀 Installation
+## Installation
 
 ### Option 1: Download Pre-built Executable (Recommended)
 
@@ -164,7 +164,7 @@ fcli --version  # Should show 3.5.1 or higher
 - **macOS**: `brew install openssl`
 - **Linux**: `sudo apt-get install openssl` (Ubuntu/Debian) or `sudo yum install openssl` (CentOS/RHEL)
 
-## 🏃‍♂️ Quick Start
+## Quick Start
 
 ### First-Time Setup (5 minutes)
 
@@ -503,7 +503,7 @@ python -m utils.validators
 
 This is an **open source project** created by **Santhosh Kumar** to improve Application Security workflows for the community. We welcome contributions from security professionals, developers, and anyone passionate about making application security more accessible!
 
-### 👨‍💻 Project Author
+### Project Author
 **Santhosh Kumar**  
 [santgutz2000@live.com](mailto:santgutz2000@live.com)  
 *Passionate about simplifying Application Security workflows*
