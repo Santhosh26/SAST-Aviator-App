@@ -56,9 +56,9 @@ Thumbs.db
 # Application specific
 sast_aviator.lock
 .flet/
-
-# Build artifacts
 .claude/
+# Build artifacts
+
 build/
 dist/
 *.exe
