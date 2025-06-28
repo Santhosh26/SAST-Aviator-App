@@ -1,4 +1,4 @@
-"""Audit Operations Tab UI with enhanced features"""
+"""Audit Operations Tab UI with enhanced features - Fixed version"""
 
 import flet as ft
 import threading
@@ -182,31 +182,29 @@ class AuditTab:
             width=400
         )
         
-        # Create properly scrollable audit results
+        # FIXED: Create a single scrollable audit results container without double borders
         self.audit_results = ft.TextField(
-            label="Audit Results",
+            label="",  # Remove label since we have a header outside
             multiline=True,
-            min_lines=15,
-            max_lines=15,
+            min_lines=20,  # Increased lines for better visibility
+            max_lines=20,
             read_only=True,
             width=700,
-            height=400,
             text_size=12,
-            color=COLORS['dark_gray']
+            color=COLORS['dark_gray'],
+            border=ft.InputBorder.NONE,  # Remove TextField border
+            bgcolor=COLORS['white']  # Set background
         )
         
-        # Wrap audit results in a scrollable container with fixed height
+        # Single container with border and proper scrolling
         self.audit_results_container = ft.Container(
-            content=ft.ListView(
-                controls=[self.audit_results],
-                height=400,
-                spacing=0,
-                padding=ft.padding.all(5)
-            ),
+            content=self.audit_results,
             border=ft.border.all(1, COLORS['dark_gray']),
             border_radius=8,
-            height=420,
-            width=720
+            height=450,  # Fixed height for scrolling
+            width=720,
+            padding=10,  # Add padding inside the container
+            bgcolor=COLORS['white']
         )
     
     def build(self) -> ft.Container:
@@ -237,7 +235,8 @@ class AuditTab:
                 ft.Container(height=20)  # Bottom padding
             ],
             spacing=10,
-            scroll=ft.ScrollMode.AUTO
+            scroll=ft.ScrollMode.AUTO,
+            expand=True  # Important for proper scrolling
         )
         
         # Wrap in container with proper height constraints
@@ -463,8 +462,8 @@ class AuditTab:
                     self.audit_progress_text
                 ]),
                 self.audit_status,
-                ft.Text("Audit Results (Scrollable):", weight=ft.FontWeight.BOLD),
-                self.audit_results_container
+                ft.Text("Audit Results:", weight=ft.FontWeight.BOLD),
+                self.audit_results_container  # Single container without nested borders
             ],
             COLORS['cobalt_blue'],
             COLORS['light_gray']
