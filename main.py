@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 SAST Aviator Desktop Application
-Main entry point for the application
+Main entry point for the application - Fixed version
 """
 
 import flet as ft
@@ -41,8 +41,8 @@ class SASTAviatorApp:
         page.theme_mode = ft.ThemeMode.LIGHT
         page.padding = 0
         
-        # Remove scroll from page level - let tabs handle their own scrolling
-        page.scroll = ft.ScrollMode.HIDDEN
+        # CRITICAL: Remove scroll from page level to prevent infinite scrolling
+        page.scroll = None  # Use None instead of HIDDEN to completely disable
         
         # Custom theme with OpenText colors
         page.theme = ft.Theme(
@@ -79,7 +79,7 @@ class SASTAviatorApp:
             height=60
         )
         
-        # Create tabs with proper scrolling
+        # Create tabs with proper content handling
         tabs = ft.Tabs(
             selected_index=0,
             animation_duration=300,
@@ -87,9 +87,12 @@ class SASTAviatorApp:
                 ft.Tab(
                     text="Setup & Configuration",
                     icon=ft.Icons.SETTINGS,
+                    # Tab content needs to be wrapped to ensure proper scrolling
                     content=ft.Container(
                         content=self.setup_tab.build(),
-                        expand=True
+                        expand=True,
+                        padding=0,
+                        clip_behavior=ft.ClipBehavior.ANTI_ALIAS
                     )
                 ),
                 ft.Tab(
@@ -97,26 +100,25 @@ class SASTAviatorApp:
                     icon=ft.Icons.ASSESSMENT,
                     content=ft.Container(
                         content=self.audit_tab.build(),
-                        expand=True
+                        expand=True,
+                        padding=0,
+                        clip_behavior=ft.ClipBehavior.ANTI_ALIAS
                     )
                 )
             ],
             tab_alignment=ft.TabAlignment.CENTER,
-            expand=True
+            expand=True,
+            height=None  # Let content determine height
         )
         
         # Create main container that fills the entire window
         main_container = ft.Column(
             [
                 header,
-                ft.Container(
-                    content=tabs,
-                    expand=True,
-                    padding=0
-                )
+                tabs  # Tabs directly without container wrapper
             ],
             spacing=0,
-            expand=True
+            expand=True  # Critical for expand chain
         )
         
         # Clear the page and add main container

@@ -1,4 +1,4 @@
-"""Setup and Configuration Tab UI"""
+"""Setup and Configuration Tab UI - Fixed scrolling version"""
 
 import flet as ft
 import threading
@@ -117,44 +117,52 @@ class SetupTab:
         )
     
     def build(self) -> ft.Container:
-        """Build the setup tab UI"""
+        """Build the setup tab UI with proper scrolling"""
         logger.debug("Building SetupTab UI")
         
-        # Create scrollable column with all sections
-        scrollable_content = ft.Column(
-            [
-                ft.Text("Setup and Configuration", size=24, weight=ft.FontWeight.BOLD, color=COLORS['electric_blue']),
-                ft.Text("Complete these steps to configure your SAST Aviator environment", 
-                       size=14, color=COLORS['dark_gray'], italic=True),
-                ft.Divider(),
-                
-                # Step 1: Prerequisites Check
-                self._build_prerequisites_section(),
-                ft.Divider(height=20),
-                
-                # Step 2: Key Generation
-                self._build_key_generation_section(),
-                ft.Divider(height=20),
-                
-                # Step 3: Server Configuration
-                self._build_server_config_section(),
-                ft.Divider(height=20),
-                
-                # Step 4: Token Generation
-                self._build_token_section(),
-                
-                ft.Container(height=20)  # Bottom padding
-            ],
-            spacing=10,
-            scroll=ft.ScrollMode.AUTO,
-            expand=True
-        )
+        # Create a single column with all content
+        content = ft.Column([
+            # Header
+            ft.Container(
+                content=ft.Column([
+                    ft.Text("Setup and Configuration", size=24, weight=ft.FontWeight.BOLD, color=COLORS['electric_blue']),
+                    ft.Text("Complete these steps to configure your SAST Aviator environment", 
+                           size=14, color=COLORS['dark_gray'], italic=True),
+                ]),
+                padding=ft.padding.only(bottom=10)
+            ),
+            
+            ft.Divider(),
+            
+            # Step 1: Prerequisites Check
+            self._build_prerequisites_section(),
+            
+            ft.Divider(height=20),
+            
+            # Step 2: Key Generation
+            self._build_key_generation_section(),
+            
+            ft.Divider(height=20),
+            
+            # Step 3: Server Configuration
+            self._build_server_config_section(),
+            
+            ft.Divider(height=20),
+            
+            # Step 4: Token Generation
+            self._build_token_section(),
+            
+            # Bottom padding
+            ft.Container(height=40)
+        ], spacing=10,)
         
-        # Wrap in container with proper constraints
-        self.container = ft.Container(
-            content=scrollable_content,
+        # Wrap content in a ListView for proper scrolling
+        self.container = ft.ListView(
+            controls=[content],
+            expand=True,
+            spacing=0,
             padding=20,
-            expand=True
+            auto_scroll=False
         )
         
         # Automatically check prerequisites on startup
@@ -223,7 +231,7 @@ class SetupTab:
                             ]),
                             create_button("Generate RSA 4096 Key Pair", self._generate_keys, 
                                         COLORS['electric_blue'], COLORS['white'], 250),
-                        ]),
+                        ], spacing=10),
                         padding=ft.padding.only(top=10)
                     )
                 ),
@@ -239,7 +247,7 @@ class SetupTab:
                             ]),
                             ft.Text("Loaded key paths will appear in the fields above", 
                                    size=12, color=COLORS['dark_gray'], italic=True)
-                        ]),
+                        ], spacing=10),
                         padding=ft.padding.only(top=10)
                     )
                 )
@@ -322,7 +330,7 @@ class SetupTab:
                             ]),
                             create_button("Generate Token", self._generate_token, 
                                         COLORS['electric_blue'], COLORS['white']),
-                        ]),
+                        ], spacing=10),
                         padding=ft.padding.only(top=10)
                     )
                 ),
@@ -334,12 +342,12 @@ class SetupTab:
                                         COLORS['cobalt_blue'], COLORS['white'], 150),
                             ft.Text("Loaded token path will appear in the field above", 
                                    size=12, color=COLORS['dark_gray'], italic=True)
-                        ]),
+                        ], spacing=10),
                         padding=ft.padding.only(top=10)
                     )
                 )
             ],
-            height=250
+            height=275
         )
         
         return create_section_container(
@@ -485,7 +493,7 @@ class SetupTab:
             logger.debug("No token file selected")
         self.page.update()
     
-    # Existing methods with added logging
+    # Existing methods
     def _validate_server_url(self, e):
         """Validate server URL format"""
         if not Validators.validate_url(self.server_url.value):
