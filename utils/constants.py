@@ -14,10 +14,3 @@ COLORS = {
     'error_red': '#dc3545'
 }
 
-# Default configuration values
-DEFAULTS = {
-    'server_url': 'https://ams.aviator.fortify.com',
-    'tenant': 'demo_presales',
-    'ssc_url': 'http://10.0.1.203:8080/ssc',
-    'token_name': 'aviator_token'
-}
