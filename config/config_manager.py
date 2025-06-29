@@ -36,17 +36,17 @@ class ConfigManager:
         logger.info("Creating default configuration")
         
         self.config['server'] = {
-            'url': 'https://ams.aviator.fortify.com',
-            'tenant': 'demo_presales',
+            'url': '',
+            'tenant': '',
             'private_key_path': './private_key.pem'
         }
         self.config['tokens'] = {
-            'current_token_file': './token_meapresales.json',
+            'current_token_file': './sast_aviator_token.json',
             'token_email': ''
         }
         self.config['ssc'] = {
-            'url': 'http://10.0.1.203:8080/ssc',
-            'username': 'admin',
+            'url': '',
+            'username': '',
             'last_session': ''
         }
         self.config['app_mappings'] = {}

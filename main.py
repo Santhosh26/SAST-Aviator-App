@@ -67,12 +67,12 @@ class SASTAviatorApp:
                     color=COLORS['white']
                 ),
                 ft.Container(expand=True),  # Spacer
-                ft.IconButton(
-                    icon=ft.Icons.SETTINGS,
-                    icon_color=COLORS['white'],
-                    tooltip="Settings",
-                    on_click=lambda _: logger.info("Settings clicked")
-                )
+                # ft.IconButton(
+                #     icon=ft.Icons.SETTINGS,
+                #     icon_color=COLORS['white'],
+                #     tooltip="Settings",
+                #     on_click=lambda _: logger.info("Settings clicked")
+                # )
             ], alignment=ft.MainAxisAlignment.START),
             bgcolor=COLORS['electric_blue'],
             padding=ft.padding.symmetric(horizontal=20, vertical=15),
